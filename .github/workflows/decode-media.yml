@@ -33,4 +33,5 @@ jobs:
             exit 0
           fi
           git commit -m "Decode feed graphics from base64 sources"
+          git pull --rebase origin main
           git push
