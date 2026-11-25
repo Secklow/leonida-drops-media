@@ -22,6 +22,20 @@ jobs:
             base64 -d "$f" > "$out"
             echo "decoded $f -> $out ($(wc -c < "$out") bytes)"
           done
+          # Large files arrive split: src/<name>.b64.partNN plus a manifest
+          # src/<name>.parts (holding the part count) pushed last.
+          for m in src/*.parts; do
+            name="$(basename "$m" .parts)"
+            want="$(tr -dc '0-9' < "$m")"
+            parts=( $(ls src/"$name".b64.part* 2>/dev/null | sort) )
+            if [ "${#parts[@]}" -ne "$want" ]; then
+              echo "waiting for parts of $name (${#parts[@]}/$want)"
+              continue
+            fi
+            cat "${parts[@]}" | tr -d '\n\r ' | base64 -d > "feed/$name"
+            echo "decoded $name from $want parts ($(wc -c < "feed/$name") bytes)"
+            git rm -q "$m" "${parts[@]}"
+          done
       - name: Commit decoded files and remove base64 sources
         run: |
           set -euo pipefail
